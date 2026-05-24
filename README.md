@@ -1,0 +1,2 @@
+# gudangkita
+Aplikasi manajemen gudang
