@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GudangKita Final</title>
+<script src="https://cdn.tailwindcss.com">
+function sortStokByDate(){
+    stokData.sort((a,b) => new Date(a.tanggal) - new Date(b.tanggal));
+    
+function printLaporanStok(){
+    if(stok.length===0){ alert('Data stok kosong!'); return; }
+    let total=0;
+    let rows=stok.map((d,i)=>{ total+=parseInt(d.jumlah)||0; return `<tr>
+        <td style="border:1px solid #000;padding:4px;text-align:center">${i+1}</td>
+        <td style="border:1px solid #000;padding:4px">${d.nama}</td>
+        <td style="border:1px solid #000;padding:4px">${d.kategori}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:right">${d.jumlah}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:right">Rp ${parseInt(d.harga||0).toLocaleString('id-ID')}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:center">${d.tipe}</td>
+    </tr>`; }).join('');
+    
+    document.getElementById('printArea').innerHTML = `
+    <div class="print-area">
+        <h2 style="text-align:center;font-size:14pt;margin:0 0 5px 0">LAPORAN DATA STOK</h2>
+        <p style="text-align:center;font-size:9pt;margin:0 0 10px 0">${new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})}</p>
+        <table style="width:100%;border-collapse:collapse;font-size:9pt">
+            <thead><tr style="background:#e2e8f0">
+                <th style="border:1px solid #000;padding:4px">No</th>
+                <th style="border:1px solid #000;padding:4px">Nama</th>
+                <th style="border:1px solid #000;padding:4px">Kategori</th>
+                <th style="border:1px solid #000;padding:4px">Jumlah</th>
+                <th style="border:1px solid #000;padding:4px">Harga</th>
+                <th style="border:1px solid #000;padding:4px">Status</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+            <tfoot><tr style="font-weight:bold;background:#f1f5f9">
+                <td colspan="3" style="border:1px solid #000;padding:4px;text-align:right">TOTAL AKHIR :</td>
+                <td style="border:1px solid #000;padding:4px;text-align:right">${total}</td>
+                <td colspan="2" style="border:1px solid #000;padding:4px"></td>
+            </tr></tfoot>
+        </table>
+    </div>`;
+    window.print();
+}
+
+renderStok();
+}
+
+function printStokPertanggal(){
+    let tgl = prompt("Masukkan tanggal (YYYY-MM-DD):", new Date().toISOString().slice(0,10));
+    if(!tgl) return;
+    let data = stokData.filter(d => d.tanggal === tgl);
+    sortStokByDate();
+    generatePrintStok(data, "Laporan Stok Tanggal " + tgl);
+}
+
+function printStokBulanan(){
+    let bulan = prompt("Masukkan bulan (YYYY-MM):", new Date().toISOString().slice(0,7));
+    if(!bulan) return;
+    let data = stokData.filter(d => d.tanggal.startsWith(bulan));
+    sortStokByDate();
+    generatePrintStok(data, "Laporan Stok Bulan " + bulan);
+}
+
+function generatePrintStok(data, judul){
+    let html = `<div class="print-area"><h2>${judul}</h2><table border="1" style="width:100%;border-collapse:collapse"><tr><th>Tanggal</th><th>Nama</th><th>Kategori</th><th>Jumlah</th><th>Harga</th><th>Status</th></tr>`;
+    data.forEach(d => {
+        html += `<tr><td>${d.tanggal}</td><td>${d.nama}</td><td>${d.kategori}</td><td>${d.jumlah}</td><td>Rp ${d.harga.toLocaleString()}</td><td>${d.status}</td></tr>`;
+    });
+    html += `</table></div>`;
+    document.getElementById('printArea').innerHTML = html;
+    window.print();
+}
+
+// Auto sort saat load
+document.addEventListener('DOMContentLoaded', function(){
+    if(typeof stokData !== 'undefined') sortStokByDate();
+});
+
+</script>
+<style>
+body{font-family:Arial,sans-serif}
+.print-area{display:none}
+.table-scroll{max-height:320px;overflow-y:auto}
+
+@media print{
+  body *{visibility:hidden}
+  .print-area,.print-area *{visibility:visible}
+  .print-area{display:block;position:absolute;left:0;top:0;width:100%;font-size:10pt}
+  .print-area table{font-size:9pt}
+  .print-area h2{font-size:12pt;margin:5px 0}
+  .print-area td, .print-area th{padding:2px 4px}
+}
+
+@media print_DISABLED{
+  body *{visibility:hidden}
+  .print-area,.print-area *{visibility:visible}
+  .print-area{display:block;position:absolute;left:0;top:0;width:100%}
+}
+</style>
+
+<style>
+.admin-only { display: table-cell; }
+body.role-user .admin-only { display: none !important; }
+body.role-user #inputSection { display: none !important; }
+</style>
+
+</head>
+<body class="bg-slate-100">
+
+<div id="loginOverlay" class="fixed inset-0 bg-slate-900 bg-opacity-95 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
+        <h1 class="text-2xl font-bold text-sky-600 text-center mb-2">GudangKita Login</h1>
+        <p class="text-slate-500 text-center mb-6">Masuk untuk melanjutkan</p>
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Username</label>
+                <input type="text" id="loginUser" class="w-full border rounded p-3 focus:ring-2 focus:ring-sky-500 outline-none" placeholder="admin / User" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Password</label>
+                <input type="password" id="loginPass" class="w-full border rounded p-3 focus:ring-2 focus:ring-sky-500 outline-none" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="w-full bg-sky-600 text-white py-3 rounded font-semibold hover:bg-sky-700">Login</button>
+            <p id="loginError" class="text-red-500 text-sm text-center hidden">Username atau password salah!</p>
+        </form>
+        <div class="mt-6 text-xs text-slate-400 text-center">
+            Admin: admin / admin987<br>User: User / user123
+        </div>
+    </div>
+</div>
+
+<div id="mainApp" style="display:none">
+<div class="max-w-7xl mx-auto p-4">
+
+    <div class="bg-white rounded-xl shadow p-5 mb-5">
+        <h1 class="text-3xl font-bold text-sky-600">GudangKita</h1>
+        <p class="text-slate-500">Manajemen Gudang + Laporan Harian & Bulanan</p>
+    </div>
+
+    <div id="inputSection" class="grid md:grid-cols-2 gap-5">
+
+        <div class="bg-white rounded-xl shadow p-5">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-xl">Input Barang</h2>
+                <span id="stokMode" class="text-sm text-orange-500 font-semibold hidden">Mode Edit</span>
+            </div>
+
+            <form id="stokForm" class="space-y-3">
+
+                <input type="hidden" id="stokEditIndex">
+
+                <input class="w-full border rounded p-2" id="nama" placeholder="Nama Barang" required>
+
+                <select class="w-full border rounded p-2" id="kategori">
+                    <option>Kering</option>
+                    <option>Basah</option>
+                </select>
+
+                <select class="w-full border rounded p-2" id="tipeBarang">
+                    <option value="Masuk">Barang Masuk</option>
+                    <option value="Keluar">Barang Keluar</option>
+                </select>
+
+                <input type="number" class="w-full border rounded p-2" id="jumlah" placeholder="Jumlah Barang" required>
+
+                <input type="number" class="w-full border rounded p-2" id="harga" placeholder="Harga" required>
+
+                <input type="date" class="w-full border rounded p-2" id="tanggal">
+
+                <div class="flex gap-2">
+                    <button id="btnStok" class="bg-sky-500 text-white px-4 py-2 rounded w-full">Simpan Barang</button>
+
+                    <button type="button" onclick="resetStokForm()"
+                        class="bg-slate-500 text-white px-4 py-2 rounded hidden"
+                        id="cancelStokBtn">Batal</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-xl shadow p-5">
+
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-xl">Input Kas</h2>
+                <span id="kasMode" class="text-sm text-orange-500 font-semibold hidden">Mode Edit</span>
+            </div>
+
+            <form id="kasForm" class="space-y-3">
+
+                <input type="hidden" id="kasEditIndex">
+
+                <select class="w-full border rounded p-2" id="jenisKas">
+                    <option value="Masuk">Kas Masuk</option>
+                    <option value="Keluar">Kas Keluar</option>
+                </select>
+
+                <input class="w-full border rounded p-2" id="keteranganKas"
+                    placeholder="Keterangan" required>
+
+                <input type="number" class="w-full border rounded p-2" id="jumlahKas"
+                    placeholder="Jumlah" required>
+
+                <input type="date" class="w-full border rounded p-2" id="tanggalKas">
+
+                <div class="flex gap-2">
+                    <button id="btnKas"
+                        class="bg-emerald-500 text-white px-4 py-2 rounded w-full">
+                        Simpan Kas
+                    </button>
+
+                    <button type="button" onclick="resetKasForm()"
+                        class="bg-slate-500 text-white px-4 py-2 rounded hidden"
+                        id="cancelKasBtn">Batal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-5 mt-5">
+
+        <div class="bg-white rounded-xl shadow p-5">
+
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-xl">Data Stok</h2>
+
+                <button onclick="exportCSV()"
+                    class="bg-slate-700 text-white px-3 py-2 rounded">
+                    Export CSV
+                </button>
+                    <button onclick="printLaporanStok()" class="bg-blue-600 text-white px-3 py-1 rounded text-sm ml-2">Print Laporan</button>
+            </div>
+
+            <div class="overflow-auto table-scroll">
+                <table class="w-full border">
+
+                    <thead class="bg-slate-200">
+                        <tr>
+                            <th class="border p-2">Nama</th>
+                            <th class="border p-2">Kategori</th>
+                            <th class="border p-2">Jumlah</th>
+                            <th class="border p-2">Harga</th>
+                            <th class="border p-2">Status</th>
+                            <th class="border p-2 admin-only">Aksi</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="stokTable"></tbody>
+
+                </table>
+            </div>
+
+            <div class="mt-4 text-right">
+                <h3 class="font-bold text-lg">
+                    Total Akhir :
+                    <span id="totalStokAkhir">0</span>
+                </h3>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow p-5">
+
+            <div class="flex justify-between items-center mb-4">
+
+                <h2 class="font-bold text-xl">Data Kas</h2>
+
+                <div class="flex gap-2 flex-wrap">
+                    
+
+                    <button onclick="printLaporanBulanan()"
+                        class="bg-green-600 text-white px-3 py-2 rounded">
+                        Print Bulanan
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-auto table-scroll">
+
+                <table class="w-full border">
+
+                    <thead class="bg-slate-200">
+                        <tr>
+                            <th class="border p-2">Tanggal</th>
+                            <th class="border p-2">Jenis</th>
+                            <th class="border p-2">Keterangan</th>
+                            <th class="border p-2">Jumlah</th>
+                            <th class="border p-2 admin-only">Aksi</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="kasTable"></tbody>
+
+                </table>
+            </div>
+
+            <div class="mt-4 text-right">
+                <h3 class="font-bold text-lg">
+                    Total Akhir :
+                    <span id="totalKasAkhir">Rp 0</span>
+                </h3>
+            </div>
+
+            <div class="mt-4 text-right">
+                <h3 class="font-bold text-lg">
+                    Total Akhir :
+                    <span id="totalKasAkhir">Rp 0</span>
+                </h3>
+            </div>
+        </div>
+    </div>
+
+    <div id="printArea" class="print-area p-8"></div>
+</div>
+</div>
+
+<script>
+
+// ===== LOGIN SYSTEM =====
+const loginOverlay = document.getElementById('loginOverlay');
+const mainApp = document.getElementById('mainApp');
+const loginForm = document.getElementById('loginForm');
+const loginError = document.getElementById('loginError');
+
+let currentRole = sessionStorage.getItem('gudangRole') || '';
+
+function checkLogin(){
+    if(currentRole){
+        loginOverlay.style.display = 'none';
+        mainApp.style.display = 'block';
+        document.body.classList.add('role-' + currentRole);
+        applyRole();
+    }
+}
+
+function applyRole(){
+    const isAdmin = currentRole === 'admin';
+    const header = document.querySelector('h1.text-3xl');
+    if(header && !document.getElementById('userInfo')){
+        const info = document.createElement('div');
+        info.id = 'userInfo';
+        info.className = 'flex items-center gap-3 mt-2';
+        info.innerHTML = `
+            <span class="text-sm font-normal text-slate-600">Role: <b>${currentRole.toUpperCase()}</b></span>
+            <button onclick="logout()" class="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Logout</button>
+        `;
+        header.parentElement.appendChild(info);
+    }
+    renderStok();
+    renderKas();
+}
+
+function logout(){
+    sessionStorage.removeItem('gudangRole');
+    location.reload();
+}
+
+if(loginForm){
+    loginForm.addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const user = document.getElementById('loginUser').value.trim();
+        const pass = document.getElementById('loginPass').value;
+        if(user === 'admin' && pass === 'admin987'){
+            currentRole = 'admin';
+            sessionStorage.setItem('gudangRole', 'admin');
+            loginError.classList.add('hidden');
+            checkLogin();
+        } else if(user === 'User' && pass === 'user123'){
+            currentRole = 'user';
+            sessionStorage.setItem('gudangRole', 'user');
+            loginError.classList.add('hidden');
+            checkLogin();
+        } else {
+            loginError.classList.remove('hidden');
+        }
+    });
+}
+
+checkLogin();
+
+
+const stok = JSON.parse(localStorage.getItem('stokGudang') || '[]');
+const kas = JSON.parse(localStorage.getItem('kasGudang') || '[]');
+
+const stokForm = document.getElementById('stokForm');
+const kasForm = document.getElementById('kasForm');
+
+document.getElementById('tanggal').valueAsDate = new Date();
+document.getElementById('tanggalKas').valueAsDate = new Date();
+
+function saveData(){
+    localStorage.setItem('stokGudang', JSON.stringify(stok));
+    localStorage.setItem('kasGudang', JSON.stringify(kas));
+}
+
+function renderStok(){
+
+    const tb = document.getElementById('stokTable');
+    tb.innerHTML = '';
+
+    let totalStok = 0;
+
+    stok.forEach((item,index)=>{
+
+        totalStok += Number(item.jumlah);
+
+        tb.innerHTML += `
+        <tr>
+            <td class="border p-2">${item.nama}</td>
+            <td class="border p-2">${item.kategori}</td>
+            <td class="border p-2 text-right">${item.jumlah}</td>
+            <td class="border p-2 text-right">
+                Rp ${item.harga.toLocaleString('id-ID')}
+            </td>
+
+            <td class="border p-2 text-center">
+                <span class="${item.tipe === 'Keluar' ? 'text-red-600' : 'text-green-600'} font-semibold">
+                    ${item.tipe || 'Masuk'}
+                </span>
+            </td>
+
+            <td class="border p-2 text-center admin-only">
+
+                <div class="flex gap-2 justify-center">
+
+                    <button onclick="editStok(${index})"
+                        class="bg-yellow-500 text-white px-2 py-1 rounded text-sm">
+                        Edit
+                    </button>
+
+                    <button onclick="hapusStok(${index})"
+                        class="bg-red-600 text-white px-2 py-1 rounded text-sm">
+                        Hapus
+                    </button>
+
+                </div>
+
+            </td>
+        </tr>`;
+    });
+
+    document.getElementById('totalStokAkhir').innerText =
+        totalStok.toLocaleString('id-ID');
+}
+
+function renderKas(){
+
+    const tb = document.getElementById('kasTable');
+    tb.innerHTML = '';
+
+    kas.sort((a,b)=> new Date(b.tanggal) - new Date(a.tanggal));
+
+    let totalAkhir = 0;
+
+    kas.forEach((item,index)=>{
+
+        if(item.jenis === 'Masuk'){
+            totalAkhir += item.jumlah;
+        }else{
+            totalAkhir -= item.jumlah;
+        }
+
+        tb.innerHTML += `
+        <tr>
+            <td class="border p-2">${item.tanggal}</td>
+            <td class="border p-2">${item.jenis}</td>
+            <td class="border p-2">${item.keterangan}</td>
+
+            <td class="border p-2 text-right">
+                Rp ${item.jumlah.toLocaleString('id-ID')}
+            </td>
+
+            <td class="border p-2 text-center admin-only">
+
+                <div class="flex gap-2 justify-center">
+
+                    <button onclick="editKas(${index})"
+                        class="bg-yellow-500 text-white px-2 py-1 rounded text-sm">
+                        Edit
+                    </button>
+
+                    <button onclick="hapusKas(${index})"
+                        class="bg-red-600 text-white px-2 py-1 rounded text-sm">
+                        Hapus
+                    </button>
+
+                </div>
+            </td>
+        </tr>`;
+    });
+
+    document.getElementById('totalKasAkhir').innerText =
+        'Rp ' + totalAkhir.toLocaleString('id-ID');
+}
+
+stokForm.addEventListener('submit', e=>{
+
+    e.preventDefault();
+
+    const editIndex = document.getElementById('stokEditIndex').value;
+
+    const tipe = tipeBarang.value;
+    const jumlahInput = Number(jumlah.value);
+
+    const data = {
+        nama:nama.value,
+        kategori:kategori.value,
+        jumlah:jumlahInput,
+        harga:Number(harga.value),
+        tanggal:tanggal.value,
+        tipe:tipe
+    };
+
+    if(editIndex === ''){
+
+        const existing = stok.find(i =>
+            i.nama.toLowerCase() === data.nama.toLowerCase()
+        );
+
+        if(existing){
+
+            if(tipe === 'Masuk'){
+
+                existing.jumlah += jumlahInput;
+
+            }else{
+
+                if(existing.jumlah < jumlahInput){
+                    alert('Stok tidak mencukupi!');
+                    return;
+                }
+
+                existing.jumlah -= jumlahInput;
+            }
+
+            existing.harga = data.harga;
+            existing.tanggal = data.tanggal;
+            existing.tipe = tipe;
+
+        }else{
+
+            if(tipe === 'Keluar'){
+                alert('Barang belum tersedia di stok!');
+                return;
+            }
+
+            stok.push(data);
+        }
+
+    }else{
+
+        stok[editIndex] = data;
+    }
+
+    saveData();
+    
+function printLaporanStok(){
+    if(stok.length===0){ alert('Data stok kosong!'); return; }
+    let total=0;
+    let rows=stok.map((d,i)=>{ total+=parseInt(d.jumlah)||0; return `<tr>
+        <td style="border:1px solid #000;padding:4px;text-align:center">${i+1}</td>
+        <td style="border:1px solid #000;padding:4px">${d.nama}</td>
+        <td style="border:1px solid #000;padding:4px">${d.kategori}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:right">${d.jumlah}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:right">Rp ${parseInt(d.harga||0).toLocaleString('id-ID')}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:center">${d.tipe}</td>
+    </tr>`; }).join('');
+    
+    document.getElementById('printArea').innerHTML = `
+    <div class="print-area">
+        <h2 style="text-align:center;font-size:14pt;margin:0 0 5px 0">LAPORAN DATA STOK</h2>
+        <p style="text-align:center;font-size:9pt;margin:0 0 10px 0">${new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})}</p>
+        <table style="width:100%;border-collapse:collapse;font-size:9pt">
+            <thead><tr style="background:#e2e8f0">
+                <th style="border:1px solid #000;padding:4px">No</th>
+                <th style="border:1px solid #000;padding:4px">Nama</th>
+                <th style="border:1px solid #000;padding:4px">Kategori</th>
+                <th style="border:1px solid #000;padding:4px">Jumlah</th>
+                <th style="border:1px solid #000;padding:4px">Harga</th>
+                <th style="border:1px solid #000;padding:4px">Status</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+            <tfoot><tr style="font-weight:bold;background:#f1f5f9">
+                <td colspan="3" style="border:1px solid #000;padding:4px;text-align:right">TOTAL AKHIR :</td>
+                <td style="border:1px solid #000;padding:4px;text-align:right">${total}</td>
+                <td colspan="2" style="border:1px solid #000;padding:4px"></td>
+            </tr></tfoot>
+        </table>
+    </div>`;
+    window.print();
+}
+
+renderStok();
+    resetStokForm();
+});
+
+kasForm.addEventListener('submit', e=>{
+
+    e.preventDefault();
+
+    const editIndex = document.getElementById('kasEditIndex').value;
+
+    const data = {
+        jenis:jenisKas.value,
+        keterangan:keteranganKas.value,
+        jumlah:Number(jumlahKas.value),
+        tanggal:tanggalKas.value
+    };
+
+    if(editIndex === ''){
+        kas.push(data);
+    }else{
+        kas[editIndex] = data;
+    }
+
+    saveData();
+    renderKas();
+    resetKasForm();
+});
+
+function editStok(index){
+
+    const item = stok[index];
+
+    nama.value = item.nama;
+    kategori.value = item.kategori;
+    jumlah.value = item.jumlah;
+    harga.value = item.harga;
+    tanggal.value = item.tanggal;
+    tipeBarang.value = item.tipe || 'Masuk';
+
+    document.getElementById('stokEditIndex').value = index;
+
+    document.getElementById('btnStok').innerText = 'Update Barang';
+
+    document.getElementById('stokMode').classList.remove('hidden');
+    document.getElementById('cancelStokBtn').classList.remove('hidden');
+
+    window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function editKas(index){
+
+    const item = kas[index];
+
+    jenisKas.value = item.jenis;
+    keteranganKas.value = item.keterangan;
+    jumlahKas.value = item.jumlah;
+    tanggalKas.value = item.tanggal;
+
+    document.getElementById('kasEditIndex').value = index;
+
+    document.getElementById('btnKas').innerText = 'Update Kas';
+
+    document.getElementById('kasMode').classList.remove('hidden');
+    document.getElementById('cancelKasBtn').classList.remove('hidden');
+
+    window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function hapusStok(index){
+
+    if(confirm('Hapus data stok ini?')){
+
+        stok.splice(index,1);
+        saveData();
+        
+function printLaporanStok(){
+    if(stok.length===0){ alert('Data stok kosong!'); return; }
+    let total=0;
+    let rows=stok.map((d,i)=>{ total+=parseInt(d.jumlah)||0; return `<tr>
+        <td style="border:1px solid #000;padding:4px;text-align:center">${i+1}</td>
+        <td style="border:1px solid #000;padding:4px">${d.nama}</td>
+        <td style="border:1px solid #000;padding:4px">${d.kategori}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:right">${d.jumlah}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:right">Rp ${parseInt(d.harga||0).toLocaleString('id-ID')}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:center">${d.tipe}</td>
+    </tr>`; }).join('');
+    
+    document.getElementById('printArea').innerHTML = `
+    <div class="print-area">
+        <h2 style="text-align:center;font-size:14pt;margin:0 0 5px 0">LAPORAN DATA STOK</h2>
+        <p style="text-align:center;font-size:9pt;margin:0 0 10px 0">${new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})}</p>
+        <table style="width:100%;border-collapse:collapse;font-size:9pt">
+            <thead><tr style="background:#e2e8f0">
+                <th style="border:1px solid #000;padding:4px">No</th>
+                <th style="border:1px solid #000;padding:4px">Nama</th>
+                <th style="border:1px solid #000;padding:4px">Kategori</th>
+                <th style="border:1px solid #000;padding:4px">Jumlah</th>
+                <th style="border:1px solid #000;padding:4px">Harga</th>
+                <th style="border:1px solid #000;padding:4px">Status</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+            <tfoot><tr style="font-weight:bold;background:#f1f5f9">
+                <td colspan="3" style="border:1px solid #000;padding:4px;text-align:right">TOTAL AKHIR :</td>
+                <td style="border:1px solid #000;padding:4px;text-align:right">${total}</td>
+                <td colspan="2" style="border:1px solid #000;padding:4px"></td>
+            </tr></tfoot>
+        </table>
+    </div>`;
+    window.print();
+}
+
+renderStok();
+    }
+}
+
+function hapusKas(index){
+
+    if(confirm('Hapus data kas ini?')){
+
+        kas.splice(index,1);
+        saveData();
+        renderKas();
+    }
+}
+
+function resetStokForm(){
+
+    stokForm.reset();
+
+    document.getElementById('tanggal').valueAsDate = new Date();
+
+    document.getElementById('stokEditIndex').value = '';
+
+    document.getElementById('btnStok').innerText = 'Simpan Barang';
+
+    document.getElementById('stokMode').classList.add('hidden');
+    document.getElementById('cancelStokBtn').classList.add('hidden');
+}
+
+function resetKasForm(){
+
+    kasForm.reset();
+
+    document.getElementById('tanggalKas').valueAsDate = new Date();
+
+    document.getElementById('kasEditIndex').value = '';
+
+    document.getElementById('btnKas').innerText = 'Simpan Kas';
+
+    document.getElementById('kasMode').classList.add('hidden');
+    document.getElementById('cancelKasBtn').classList.add('hidden');
+}
+
+function exportCSV(){
+
+    let csv = "Nama,Kategori,Jumlah,Harga,Status\n";
+
+    stok.forEach(i=>{
+        csv += `${i.nama},${i.kategori},${i.jumlah},${i.harga},${i.tipe}\n`;
+    });
+
+    const blob = new Blob([csv], {type:'text/csv'});
+
+    const a = document.createElement('a');
+
+    a.href = URL.createObjectURL(blob);
+
+    a.download = 'laporan_stok.csv';
+
+    a.click();
+}
+
+
+function printLaporanBulanan(){
+
+    const bulan = new Date().getMonth()+1;
+    const tahun = new Date().getFullYear();
+
+    const data = kas.filter(k=>{
+
+        const d = new Date(k.tanggal);
+
+        return d.getMonth()+1===bulan &&
+               d.getFullYear()===tahun;
+    });
+
+    let totalMasuk = 0;
+    let totalKeluar = 0;
+
+    data.forEach(d=>{
+
+        if(d.jenis==='Masuk'){
+            totalMasuk += d.jumlah;
+        }else{
+            totalKeluar += d.jumlah;
+        }
+    });
+
+    document.getElementById('printArea').innerHTML = `
+        <h1 style="font-size:28px;font-weight:bold">
+            Laporan Bulanan GudangKita
+        </h1>
+
+        <p>Bulan: ${bulan}/${tahun}</p>
+
+        <hr style="margin:15px 0">
+
+        <table border="1" width="100%" cellspacing="0" cellpadding="8">
+
+            <tr>
+                <th>Tanggal</th>
+                <th>Jenis</th>
+                <th>Keterangan</th>
+                <th>Jumlah</th>
+            </tr>
+
+            ${data.map(d=>`
+                <tr>
+                    <td>${d.tanggal}</td>
+                    <td>${d.jenis}</td>
+                    <td>${d.keterangan}</td>
+                    <td>Rp ${d.jumlah.toLocaleString('id-ID')}</td>
+                </tr>
+            `).join('')}
+
+        </table>
+
+        <h3>Total Masuk: Rp ${totalMasuk.toLocaleString('id-ID')}</h3>
+        <h3>Total Keluar: Rp ${totalKeluar.toLocaleString('id-ID')}</h3>
+        <h2>Saldo: Rp ${(totalMasuk-totalKeluar).toLocaleString('id-ID')}</h2>
+    `;
+
+    window.print();
+}
+
+
+function printLaporanStok(){
+    if(stok.length===0){ alert('Data stok kosong!'); return; }
+    let total=0;
+    let rows=stok.map((d,i)=>{ total+=parseInt(d.jumlah)||0; return `<tr>
+        <td style="border:1px solid #000;padding:4px;text-align:center">${i+1}</td>
+        <td style="border:1px solid #000;padding:4px">${d.nama}</td>
+        <td style="border:1px solid #000;padding:4px">${d.kategori}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:right">${d.jumlah}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:right">Rp ${parseInt(d.harga||0).toLocaleString('id-ID')}</td>
+        <td style="border:1px solid #000;padding:4px;text-align:center">${d.tipe}</td>
+    </tr>`; }).join('');
+    
+    document.getElementById('printArea').innerHTML = `
+    <div class="print-area">
+        <h2 style="text-align:center;font-size:14pt;margin:0 0 5px 0">LAPORAN DATA STOK</h2>
+        <p style="text-align:center;font-size:9pt;margin:0 0 10px 0">${new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})}</p>
+        <table style="width:100%;border-collapse:collapse;font-size:9pt">
+            <thead><tr style="background:#e2e8f0">
+                <th style="border:1px solid #000;padding:4px">No</th>
+                <th style="border:1px solid #000;padding:4px">Nama</th>
+                <th style="border:1px solid #000;padding:4px">Kategori</th>
+                <th style="border:1px solid #000;padding:4px">Jumlah</th>
+                <th style="border:1px solid #000;padding:4px">Harga</th>
+                <th style="border:1px solid #000;padding:4px">Status</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+            <tfoot><tr style="font-weight:bold;background:#f1f5f9">
+                <td colspan="3" style="border:1px solid #000;padding:4px;text-align:right">TOTAL AKHIR :</td>
+                <td style="border:1px solid #000;padding:4px;text-align:right">${total}</td>
+                <td colspan="2" style="border:1px solid #000;padding:4px"></td>
+            </tr></tfoot>
+        </table>
+    </div>`;
+    window.print();
+}
+
+renderStok();
+renderKas();
+
+</script>
+</body>
+</html>
